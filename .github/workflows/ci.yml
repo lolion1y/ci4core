@@ -182,8 +182,7 @@ jobs:
           merge-multiple: true
 
       - name: Generate body.txt
-        run: echo -n "Core=${download_version} Time=`TZ='Asia/Shanghai' date "+%F %R %z"`" > body.txt
-
+        run: echo -n "{\"core\"=\"${download_version}\",\"time\":\"`TZ='Asia/Shanghai' date "+%F %R %z"`\"}" > body.json
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: publish
@@ -213,4 +212,4 @@ jobs:
           tag_name: latest
           files: ./publish/*
           generate_release_notes: true
-          body_path: body.txt
+          body_path: body.json
