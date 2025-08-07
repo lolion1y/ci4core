@@ -149,7 +149,7 @@ jobs:
           fi
           echo "download_version=${download_version}" >> $GITHUB_OUTPUT
           echo "download_version=${download_version}" >> $GITHUB_ENV
-          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/lolion1y/ci4core/releases/latest | awk -F'"|\\\' '/body/ {print $10}')" = "${download_version}" ];then
+          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/lolion1y/ci4core/releases/latest | awk -F'=| ' '/body/ {print $5}')" = "${download_version}" ];then
             echo "cancel=true" >> $GITHUB_OUTPUT
             echo "cancel=true" >> $GITHUB_ENV
           fi
@@ -210,7 +210,8 @@ jobs:
           merge-multiple: true
 
       - name: Generate body.txt
-        run: echo -n "{\"core\":\"${download_version}\",\"time\":\"`TZ='Asia/Shanghai' date "+%F %R %z"`\"}" > body.json
+        run: echo -n "Core=${download_version} Time=`TZ='Asia/Shanghai' date "+%F %R %z"`" > body.txt
+
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: publish
@@ -240,4 +241,4 @@ jobs:
           tag_name: latest
           files: ./publish/*
           generate_release_notes: true
-          body_path: body.json
+          body_path: body.txt
