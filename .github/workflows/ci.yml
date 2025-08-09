@@ -149,7 +149,7 @@ jobs:
           fi
           echo "download_version=${download_version}" >> $GITHUB_OUTPUT
           echo "download_version=${download_version}" >> $GITHUB_ENV
-          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/lolion1y/ci4core/releases/latest | awk -F'=| ' '/body/ {print $5}')" = "${download_version}" ];then
+          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
             echo "cancel=true" >> $GITHUB_OUTPUT
             echo "cancel=true" >> $GITHUB_ENV
           fi
@@ -204,17 +204,20 @@ jobs:
       download_version: ${{ needs.Core.outputs.download_version }}
     runs-on: ubuntu-latest
     steps:
+
       - uses: actions/download-artifact@v4
         with:
           path: publish
           merge-multiple: true
 
-      - name: Generate body.txt
-        run: echo -n "Core=${download_version} Time=`TZ='Asia/Shanghai' date "+%F %R %z"`" > body.txt
-
       - name: Display structure of downloaded files
         run: ls -R
         working-directory: publish
+
+      - name: Generate body.txt & version.txt
+        run: |
+          echo -n "$(TZ='Asia/Shanghai' date "+%F %R %z")" > body.txt
+          echo "${download_version}" > ./publish/version.txt
 
       - name: Git push assets to "release" branch
         run: |
@@ -239,6 +242,6 @@ jobs:
         uses: softprops/action-gh-release@v2.0.8
         with:
           tag_name: latest
+          name: ${{ env.download_version }}
           files: ./publish/*
-          generate_release_notes: true
           body_path: body.txt
