@@ -217,7 +217,7 @@ jobs:
       - name: Generate body.txt & version.txt
         run: |
           echo -n "$(TZ='Asia/Shanghai' date "+%F %R %z")" > ./body.txt
-          echo -ne "\n" >> ./body.txt
+          echo -ne "\n\n" >> ./body.txt
           echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha)" >> ./body.txt
           echo -n "${download_version}" > ./publish/version.txt
 
