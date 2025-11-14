@@ -216,8 +216,10 @@ jobs:
 
       - name: Generate body.txt & version.txt
         run: |
-          echo -n "$(TZ='Asia/Shanghai' date "+%F %R %z")" > body.txt
-          echo "${download_version}" > ./publish/version.txt
+          echo -n "$(TZ='Asia/Shanghai' date "+%F %R %z")" > ./body.txt
+          echo -ne "\n" >> ./body.txt
+          echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha)" >> ./body.txt
+          echo -n "${download_version}" > ./publish/version.txt
 
       - name: Git push assets to "release" branch
         run: |
