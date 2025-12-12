@@ -222,18 +222,6 @@ jobs:
           echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha)" >> ./body.txt
           echo -n "${download_version}" > ./publish/version.txt
 
-      - name: Git push assets to "release" branch
-        run: |
-          cd publish || exit 1
-          git init
-          git config --local user.name "github-actions[bot]"
-          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git checkout -b release
-          git add .
-          git commit -m release
-          git remote add origin "https://${{ github.actor }}:${{ secrets.github_token }}@github.com/${{ github.repository }}"
-          git push -f -u origin release
-
       - name: Delete current release assets
         uses: andreaswilli/delete-release-assets-action@v4.0.0
         with:
