@@ -147,12 +147,9 @@ jobs:
           else
             download_version=${download_tag}
           fi
-          echo "download_version=${download_version}"
-          echo "download_version=${download_version}" >> $GITHUB_OUTPUT
-          echo "download_version=${download_version}" >> $GITHUB_ENV
+          echo "download_version=${download_version}" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV"
           if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
-            echo "cancel=true" >> $GITHUB_OUTPUT
-            echo "cancel=true" >> $GITHUB_ENV
+            echo "cancel=true" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV" > /dev/null
           fi
 
       - name: Download upx
@@ -168,7 +165,7 @@ jobs:
         run: |
           mkdir -p publish
           if [ "${{ matrix.os }}" = "windows" ]; then
-            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip -o - | bsdtar -xf - -O > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
+            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip -o - | funzip > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             if [ "${{ matrix.rname }}" != '' ];then
