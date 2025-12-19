@@ -141,16 +141,16 @@ jobs:
         id: check
         run: |
           if [ "${download_tag}" = "Prerelease-Alpha" ];then
-            download_version=$(curl -sSL ${download_url}/download/${download_tag}/version.txt)
+            download_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/version.txt)
           elif [ "${download_tag}" = "latest" ];then
-            download_version=$(curl -sSL ${download_url}/${download_tag}/download/version.txt)
+            download_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/${download_tag}/download/version.txt)
           else
             download_version=${download_tag}
           fi
           echo "download_version=${download_version}"
           echo "download_version=${download_version}" >> $GITHUB_OUTPUT
           echo "download_version=${download_version}" >> $GITHUB_ENV
-          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
+          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
             echo "cancel=true" >> $GITHUB_OUTPUT
             echo "cancel=true" >> $GITHUB_ENV
           fi
@@ -160,24 +160,22 @@ jobs:
         run: |
           upx_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/upx/upx/releases/latest | awk -F'"|v' '/tag_name/ {print $5}')
           echo "upx_version=${upx_version}" >> $GITHUB_ENV
-          wget https://github.com/upx/upx/releases/latest/download/upx-${upx_version}-amd64_linux.tar.xz -O - | tar -Jx
-          # wget https://github.com/lolion1y/ci4core/raw/upx/upx-3.93-amd64_linux.tar.xz -O - | tar -Jx
+          curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/upx/upx/releases/latest/download/upx-${upx_version}-amd64_linux.tar.xz -o - | tar Jx
+          # curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://raw.githubusercontent.com/lolion1y/ci4core/upx/upx-3.93-amd64_linux.tar.xz -o - | tar Jx
 
       - name: Download and compress core
         if: env.cancel == ''
         run: |
           mkdir -p publish
           if [ "${{ matrix.os }}" = "windows" ]; then
-            wget ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip
-            unzip -o ${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip
-            mv ${download_name}-${{ matrix.os }}-${{ matrix.arch }}.exe ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
+            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip -o - | bsdtar -xf - -O > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             if [ "${{ matrix.rname }}" != '' ];then
               mv ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe ./publish/clash.meta-${{ matrix.os }}-${{ matrix.rname }}.exe
             fi
           else
-            wget ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz -O - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
+            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz -o - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             if [ "${{ matrix.arch }}" != "armv5" ];then
               if [ "${{ matrix.arch }}" = "mips*" ];then
