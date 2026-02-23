@@ -165,14 +165,14 @@ jobs:
         run: |
           mkdir -p publish
           if [ "${{ matrix.os }}" = "windows" ]; then
-            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip -o - | funzip > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
+            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip" -o - | funzip > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             if [ "${{ matrix.rname }}" != '' ];then
               mv ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe ./publish/clash.meta-${{ matrix.os }}-${{ matrix.rname }}.exe
             fi
           else
-            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz -o - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
+            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz" -o - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             if [ "${{ matrix.arch }}" != "armv5" ];then
               if [ "${{ matrix.arch }}" = "mips*" ];then
