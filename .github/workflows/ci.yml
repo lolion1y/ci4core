@@ -148,6 +148,7 @@ jobs:
             download_version=${download_tag}
           fi
           echo "download_version=${download_version}" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV"
+          [ "${download_version}" == 'Not Found' ] && echo "::error title=invalid version::${download_tag} version.txt Not Found" && exit 1
           if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
             echo "cancel=true" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV" > /dev/null
           fi
