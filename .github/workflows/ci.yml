@@ -19,8 +19,7 @@ concurrency:
 env:
   download_tag: Prerelease-Alpha
   download_version: ''
-  download_name: mihomo
-  download_url: https://github.com/MetaCubeX/mihomo/releases
+  download_repo: MetaCubeX/mihomo
 
 jobs:
   Core:
@@ -28,6 +27,8 @@ jobs:
     outputs:
       cancel: ${{ steps.check.outputs.cancel }}
       download_version: ${{ steps.check.outputs.download_version }}
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     strategy:
       matrix:
@@ -140,25 +141,23 @@ jobs:
       - name: Get version
         id: check
         run: |
-          if [ "${download_tag}" = "Prerelease-Alpha" ];then
-            download_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/download/${download_tag}/version.txt)
-          elif [ "${download_tag}" = "latest" ];then
-            download_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" ${download_url}/${download_tag}/download/version.txt)
+          if [ "${download_tag}" = "Prerelease-Alpha" ] || [ "${download_tag}" = "latest" ];then
+            download_version=$(gh release download "${download_tag}" -R "${download_repo}" -p 'version.txt' -O -)
           else
             download_version=${download_tag}
           fi
           echo "download_version=${download_version}" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV"
-          [ "${download_version}" == 'Not Found' ] && echo "::error title=invalid version::${download_tag} version.txt Not Found" && exit 1
-          if [ "${{ inputs.force }}" != 'true' ] && [ "$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/${{ github.repository }}/releases/latest/download/version.txt)" = "${download_version}" ];then
+          [ "${download_version}" == '' ] && echo "::error title=invalid version::${download_tag} version.txt not found" && exit 1
+          if [ "${{ inputs.force }}" != 'true' ] && [ "$(gh release download latest -R ${{ github.repository }} -p 'version.txt' -O -)" = "${download_version}" ];then
             echo "cancel=true" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV" > /dev/null
           fi
 
       - name: Download upx
         if: env.cancel == ''
         run: |
-          upx_version=$(curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://api.github.com/repos/upx/upx/releases/latest | awk -F'"|v' '/tag_name/ {print $5}')
+          upx_version=$(gh release view -R upx/upx --json tagName --jq '.tagName | ltrimstr("v")')
           echo "upx_version=${upx_version}" >> $GITHUB_ENV
-          curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://github.com/upx/upx/releases/latest/download/upx-${upx_version}-amd64_linux.tar.xz -o - | tar Jx
+          gh release download "v${upx_version}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
           # curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://raw.githubusercontent.com/lolion1y/ci4core/upx/upx-3.93-amd64_linux.tar.xz -o - | tar Jx
 
       - name: Download and compress core
@@ -166,14 +165,14 @@ jobs:
         run: |
           mkdir -p publish
           if [ "${{ matrix.os }}" = "windows" ]; then
-            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip" -o - | funzip > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
+            gh release download "${download_tag}" -R "${download_repo}" -p "*-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.zip" -O - | funzip > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe
             if [ "${{ matrix.rname }}" != '' ];then
               mv ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}.exe ./publish/clash.meta-${{ matrix.os }}-${{ matrix.rname }}.exe
             fi
           else
-            curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" "${download_url}/download/${download_tag}/${download_name}-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz" -o - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
+            gh release download "${download_tag}" -R "${download_repo}" -p "*-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz" -O - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             if [ "${{ matrix.arch }}" != "armv5" ];then
               if [ "${{ matrix.arch }}" = "mips*" ];then
