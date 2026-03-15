@@ -216,6 +216,7 @@ jobs:
           echo -ne "\n\n" >> ./body.txt
           echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha)" >> ./body.txt
           echo -n "${download_version}" > ./publish/version.txt
+          echo "::notice::${download_version}"
 
       - name: Delete current release assets
         uses: andreaswilli/delete-release-assets-action@v4.0.0
