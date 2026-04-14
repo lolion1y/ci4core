@@ -147,7 +147,7 @@ jobs:
             download_version=${download_tag}
           fi
           echo "download_version=${download_version}" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV"
-          [ "${download_version}" == '' ] && echo "::error title=Invalid version ${{ matrix.os }}-${{ matrix.arch }}::Failed to download ${download_tag} version.txt" && exit 1
+          [ "${download_version}" == '' ] && echo "::warning title=${{ matrix.os }}-${{ matrix.arch }}::Failed to download ${download_tag} version.txt" && exit 1
           if [ "${{ inputs.force }}" != 'true' ] && [ "$(gh release download latest -R ${{ github.repository }} -p 'version.txt' -O -)" = "${download_version}" ];then
             echo "cancel=true" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV" > /dev/null
           fi
