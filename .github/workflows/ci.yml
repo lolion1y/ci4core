@@ -142,12 +142,12 @@ jobs:
         id: check
         run: |
           if [ "${download_tag}" = "Prerelease-Alpha" ] || [ "${download_tag}" = "latest" ];then
-            download_version=$(gh release download "${download_tag}" -R "${download_repo}" -p 'version.txt' -O -)
+            download_version=$(gh release download "${download_tag}" -R "${download_repo}" -p 'version.txt' -O - || true)
           else
             download_version=${download_tag}
           fi
           echo "download_version=${download_version}" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV"
-          [ "${download_version}" == '' ] && echo "::error title=invalid version::${download_tag} version.txt not found" && exit 1
+          [ "${download_version}" == '' ] && echo "::error title=Invalid version ${{ matrix.os }}-${{ matrix.arch }}::Failed to download ${download_tag} version.txt" && exit 1
           if [ "${{ inputs.force }}" != 'true' ] && [ "$(gh release download latest -R ${{ github.repository }} -p 'version.txt' -O -)" = "${download_version}" ];then
             echo "cancel=true" | tee -a "$GITHUB_OUTPUT" "$GITHUB_ENV" > /dev/null
           fi
