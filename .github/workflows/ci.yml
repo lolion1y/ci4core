@@ -135,8 +135,6 @@ jobs:
           # - { os: linux, arch: amd64-v3-go120, rname: '' }
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
 
       - name: Get version
         id: check
