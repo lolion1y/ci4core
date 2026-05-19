@@ -8,8 +8,9 @@ on:
         type: boolean
       upx:
         type: choice
-        default: '-9'
+        default: '--best'
         options:
+          - ''
           - '-9'
           - '--best'
           - '--brute'
