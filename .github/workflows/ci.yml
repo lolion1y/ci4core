@@ -6,6 +6,15 @@ on:
     inputs:
       force:
         type: boolean
+      upx:
+        type: choice
+        default: '-9'
+        options:
+          - '-9'
+          - '--best'
+          - '--brute'
+          - '--ultra-brute'
+
   push:
     branches:
       - main
@@ -20,7 +29,7 @@ env:
   download_tag: Prerelease-Alpha
   download_version: ''
   download_repo: MetaCubeX/mihomo
-  UPX: '--best'
+  UPX: ${{ inputs.upx }}
 
 jobs:
   Core:
