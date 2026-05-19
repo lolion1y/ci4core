@@ -15,7 +15,6 @@ on:
           - '--best'
           - '--brute'
           - '--ultra-brute'
-
   push:
     branches:
       - main
