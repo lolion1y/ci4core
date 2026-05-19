@@ -165,7 +165,7 @@ jobs:
       - name: Download upx
         if: env.cancel == ''
         run: |
-          upx_version=$(gh release view -R upx/upx --json tagName --jq '.tagName | ltrimstr("v")')
+          upx_version=$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')
           echo "upx_version=${upx_version}" >> $GITHUB_ENV
           gh release download "v${upx_version}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
           # curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://raw.githubusercontent.com/lolion1y/ci4core/upx/upx-3.93-amd64_linux.tar.xz -o - | tar Jx
