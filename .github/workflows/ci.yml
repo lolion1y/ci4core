@@ -20,7 +20,7 @@ env:
   download_tag: Prerelease-Alpha
   download_version: ''
   download_repo: MetaCubeX/mihomo
-  UPX: '--ultra-brute'
+  UPX: '--brute'
 
 jobs:
   Core:
