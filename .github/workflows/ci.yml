@@ -29,7 +29,7 @@ env:
   download_tag: Prerelease-Alpha
   download_version: ''
   download_repo: MetaCubeX/mihomo
-  UPX: ${{ inputs.upx }}
+  UPX: ${{ inputs.upx || '--best' }}
 
 jobs:
   Core:
