@@ -1,0 +1,202 @@
+name: Build Alpha Core
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-alpha.yml
+
+concurrency:
+  group: "${{ github.workflow }}-${{ github.ref }}"
+  cancel-in-progress: true
+
+jobs:
+  Build:
+    runs-on: ubuntu-latest
+    outputs:
+      BUILDTIME: ${{ steps.set-output.outputs.BUILDTIME }}
+      COMMIT_SHA: ${{ steps.checkout.outputs.commit }}
+      VERSION: ${{ steps.set-output.outputs.VERSION }}
+    strategy:
+      matrix:
+        jobs:
+          - { goos: linux, goarch: amd64, goamd64: v1, output: amd64-v1, test: test }
+          - { goos: linux, goarch: amd64, goamd64: v2, output: amd64-v2 }
+          - { goos: linux, goarch: amd64, goamd64: v3, output: amd64-v3 }
+          - { goos: linux, goarch: arm64, output: arm64 }
+          - { goos: linux, goarch: arm, goarm: "7", output: armv7 }
+
+          - { goos: windows, goarch: amd64, goamd64: v1, output: amd64-v1 }
+          - { goos: windows, goarch: amd64, goamd64: v2, output: amd64-v2 }
+          - { goos: windows, goarch: amd64, goamd64: v3, output: amd64-v3 }
+
+          - { goos: android, goarch: arm64, ndk: aarch64-linux-android34, output: arm64-v8 }
+
+    steps:
+      - name: Checkout
+        id: checkout
+        uses: actions/checkout@v7
+        with:
+          repository: MetaCubeX/mihomo
+          ref: Alpha
+
+      - name: Set up Go
+        if: ${{ matrix.jobs.goversion == '' }}
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c
+        with:
+          go-download-base-url: "https://github.com/MetaCubeX/go/releases/download/build"
+          go-version: "1.26"
+
+      - name: Verify Go installation
+        run: go version
+
+      - name: Verify Go env
+        run: go env
+
+      - name: Set variables
+        env:
+          REF: ${{ steps.checkout.outputs.ref }}
+        run: |
+          REF_NAME="$(git rev-parse --abbrev-ref "${REF}")"
+          echo "REF_NAME=${REF_NAME}" >> $GITHUB_ENV
+
+          VERSION="${REF_NAME,,}-$(git rev-parse --short HEAD)"
+          VERSION="${VERSION//\//-}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+
+          echo "BUILDTIME=$(date)" >> $GITHUB_ENV
+          echo "CGO_ENABLED=0" >> $GITHUB_ENV
+          echo "BUILDTAG=-extldflags --static" >> $GITHUB_ENV
+          echo "GOTOOLCHAIN=local" >> $GITHUB_ENV
+
+      - name: Setup NDK
+        if: ${{ matrix.jobs.goos == 'android' }}
+        uses: nttld/setup-ndk@v1
+        id: setup-ndk
+        with:
+          ndk-version: r29-beta1
+
+      - name: Set NDK path
+        if: ${{ matrix.jobs.goos == 'android' }}
+        run: |
+          echo "CC=${{steps.setup-ndk.outputs.ndk-path}}/toolchains/llvm/prebuilt/linux-x86_64/bin/${{matrix.jobs.ndk}}-clang" >> $GITHUB_ENV
+          echo "CGO_ENABLED=1" >> $GITHUB_ENV
+          echo "BUILDTAG=" >> $GITHUB_ENV
+
+      - name: Test
+        if: ${{ matrix.jobs.test == 'test' }}
+        run: |
+          export SKIP_CONCURRENT_TEST=1
+          export SKIP_INTEROP_TEST=1
+          go test ./...
+          echo "---test with_gvisor---"
+          go test ./... -tags "with_gvisor" -count=1
+
+      - name: Update CA
+        run: |
+          sudo apt-get update && sudo apt-get install ca-certificates
+          sudo update-ca-certificates
+          cp -f /etc/ssl/certs/ca-certificates.crt component/ca/ca-certificates.crt
+
+      - name: Build core
+        env:
+          GOOS: ${{matrix.jobs.goos}}
+          GOARCH: ${{matrix.jobs.goarch}}
+          GOAMD64: ${{matrix.jobs.goamd64}}
+          GOARM: ${{matrix.jobs.goarm}}
+        run: |
+          go env
+          go build -v -tags "with_gvisor,no_fake_tcp,no_tailscale,no_zerotier,no_easytier" -trimpath -ldflags "${BUILDTAG} -X 'github.com/metacubex/mihomo/constant.Version=${VERSION}' -X 'github.com/metacubex/mihomo/constant.BuildTime=${BUILDTIME}' -w -s -buildid="
+          if [ "${{matrix.jobs.goos}}" = "windows" ]; then
+            cp mihomo.exe mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
+          else
+            cp mihomo mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
+          fi
+
+      - name: Download upx
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          upx_version=$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')
+          echo "upx_version=${upx_version}" >> $GITHUB_ENV
+          gh release download "v${upx_version}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
+
+      - name: Compress core
+        env:
+          UPX: '--best'
+        run: |
+          mkdir -p publish
+          if [ "${{matrix.jobs.goos}}" = "windows" ]; then
+            chmod +x mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
+            ./upx-${upx_version}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
+            mv mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe ./publish/clash.meta-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
+          else
+            chmod +x mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
+            if [ "${{matrix.jobs.output}}" != "armv5" ];then
+              if [ "${{matrix.jobs.output}}" = "mips*" ];then
+                ./upx-3.93-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
+              else
+                ./upx-${upx_version}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
+              fi
+            fi
+            mv mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}} ./publish/clash.meta-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
+          fi
+
+      - name: Set output
+        id: set-output
+        run: |
+          echo "BUILDTIME=${BUILDTIME}" >> $GITHUB_OUTPUT
+          echo "VERSION=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Archive production artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: "${{ matrix.jobs.goos }}-${{ matrix.jobs.output }}"
+          path: ./publish/*
+
+  Release:
+    needs: [Build]
+    env:
+      BUILDTIME: ${{ needs.Build.outputs.BUILDTIME }}
+      COMMIT_SHA: ${{ needs.Build.outputs.COMMIT_SHA }}
+      VERSION: ${{ needs.Build.outputs.VERSION }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          path: publish
+          merge-multiple: true
+
+      - name: Display structure of downloaded files
+        run: ls -R
+        working-directory: publish
+
+      - name: Generate body.txt & version.txt
+        run: |
+          echo -n "Build: $(TZ='Asia/Shanghai' date -d "${BUILDTIME}" "+%F %T %z")" >> ./body.txt
+          echo -ne "\n" >> ./body.txt
+          echo -n "Release: $(TZ='Asia/Shanghai' date "+%F %T %z")" >> ./body.txt
+          echo -ne "\n\n" >> ./body.txt
+          echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha) | [${VERSION}](https://github.com/MetaCubeX/mihomo/commit/${COMMIT_SHA}) | [Latest](https://github.com/MetaCubeX/mihomo/releases/tags/latest)" >> ./body.txt
+          echo -n "${VERSION}" > ./publish/version.txt
+          echo "::notice::${VERSION}"
+
+      - name: Delete release if exist then create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete latest --cleanup-tag -y -R "${{ github.repository }}" || true
+          gh release create latest -t "${{ env.VERSION }}" -F body.txt -R "${{ github.repository }}" ./publish/*
+
+      - name: Git push assets to "release" branch
+        run: |
+          cd publish || exit 1
+          git init
+          git config --local user.name "github-actions[bot]"
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b release
+          git add version.txt
+          git commit -m "${VERSION}"
+          git remote add origin "https://${{ github.actor }}:${{ secrets.github_token }}@github.com/${{ github.repository }}"
+          git push -f -u origin release
