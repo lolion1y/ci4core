@@ -174,11 +174,9 @@ jobs:
 
       - name: Generate body.txt & version.txt
         run: |
-          echo -n "Build: $(TZ='Asia/Shanghai' date -d "${BUILDTIME}" "+%F %T %z")" >> ./body.txt
-          echo -ne "\n" >> ./body.txt
-          echo -n "Release: $(TZ='Asia/Shanghai' date "+%F %T %z")" >> ./body.txt
-          echo -ne "\n\n" >> ./body.txt
-          echo -n "[Prerelease-Alpha](https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha) | [${VERSION}](https://github.com/MetaCubeX/mihomo/commit/${COMMIT_SHA}) | [Latest](https://github.com/MetaCubeX/mihomo/releases/tags/latest)" >> ./body.txt
+          echo -n "<table align="center"><tbody><tr><th>Build</th><th>$(TZ='Asia/Shanghai' date -d "${BUILDTIME}" "+%F %T %z")</th></tr></tbody><tbody><tr><th>Release</th><th>$(TZ='Asia/Shanghai' date "+%F %T %z")</th></tr></tbody></table>
+          </br>
+          <p align="center"><a href="https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha"><strong>Prerelease-Alpha</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/tree/Alpha"><strong>Alpha</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/commit/${COMMIT_SHA}"><strong>${VERSION}</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/releases/latest"><strong>Latest</strong></a></p>" > ./body.txt
           echo -n "${VERSION}" > ./publish/version.txt
           echo "::notice::${VERSION}"
 
