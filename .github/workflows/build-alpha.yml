@@ -174,9 +174,30 @@ jobs:
 
       - name: Generate body.txt & version.txt
         run: |
-          echo -n "<table align="center"><tbody><tr><th>Build</th><th>$(TZ='Asia/Shanghai' date -d "${BUILDTIME}" "+%F %T %z")</th></tr></tbody><tbody><tr><th>Release</th><th>$(TZ='Asia/Shanghai' date "+%F %T %z")</th></tr></tbody></table>
-          </br>
-          <p align="center"><a href="https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha"><strong>Prerelease-Alpha</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/tree/Alpha"><strong>Alpha</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/commit/${COMMIT_SHA}"><strong>${VERSION}</strong></a> | <a href="https://github.com/MetaCubeX/mihomo/releases/latest"><strong>Latest</strong></a></p>" > ./body.txt
+          WORKFLOW_FILE_PATH="${GITHUB_WORKFLOW_REF%@*}"
+          WORKFLOW_FILE_PATH="${WORKFLOW_FILE_PATH#${GITHUB_REPOSITORY}/}"
+          echo "WORKFLOW_FILE_PATH=${WORKFLOW_FILE_PATH}" >> $GITHUB_ENV
+          WORKFLOW_FILE_DIR="$(dirname "${WORKFLOW_FILE_PATH}")"
+          echo "WORKFLOW_FILE_DIR=${WORKFLOW_FILE_DIR}" >> $GITHUB_ENV
+          WORKFLOW_FILE_NAME="$(basename "${WORKFLOW_FILE_PATH}")"
+          echo "WORKFLOW_FILENAME=${WORKFLOW_FILE_NAME}" >> $GITHUB_ENV
+          WORKFLOW_FILE_REF="$(basename "${GITHUB_WORKFLOW_REF}")"
+          echo "WORKFLOW_FILE_REF=${WORKFLOW_FILE_REF}" >> $GITHUB_ENV
+
+          echo -n "<table align="center">
+          <tbody><tr><th>Build</th><th>$(TZ='Asia/Shanghai' date -d "${BUILDTIME}" "+%F %T %z")</th></tr></tbody>
+          <tbody><tr><th>Release</th><th>$(TZ='Asia/Shanghai' date "+%F %T %z")</th></tr></tbody>
+          <!--
+          <tbody><tr><th>Ref</th><th>${GITHUB_REF}</th></tr></tbody>
+          <tbody><tr><th>Ref Name</th><th>${GITHUB_REF_NAME}</th></tr></tbody>
+          <tbody><tr><th>Ref Type</th><th>${GITHUB_REF_TYPE}</th></tr></tbody>
+          -->
+          <tbody><tr><th>Workflow Name</th><th><a href="https://github.com/${GITHUB_REPOSITORY}/actions/workflows/${WORKFLOW_FILE_NAME}">${GITHUB_WORKFLOW}</a></th></tr></tbody>
+          <tbody><tr><th>Workflow File</th><th><a href="https://github.com/${GITHUB_REPOSITORY}/blob/${WORKFLOW_FILE_REF}/${WORKFLOW_FILE_PATH}">${WORKFLOW_FILE_NAME}</a></th></tr></tbody>
+          <tbody><tr><th>Run ID</th><th><a href="https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}">${GITHUB_RUN_ID}</a></th></tr></tbody>
+          <tbody><tr><th>Commit</th><th><a href="https://github.com/MetaCubeX/mihomo/commit/${COMMIT_SHA}">${VERSION}</a></th></tr></tbody>
+          <tbody><tr><th colspan="2"><a href="https://github.com/MetaCubeX/mihomo/releases/tag/Prerelease-Alpha">Prerelease-Alpha</a> | <a href="https://github.com/MetaCubeX/mihomo/tree/Alpha">Alpha</a> | <a href="https://github.com/MetaCubeX/mihomo/releases/latest">Latest</a></th></tr></tbody>
+          </table>" > ./body.txt
           echo -n "${VERSION}" > ./publish/version.txt
           echo "::notice::${VERSION}"
 
