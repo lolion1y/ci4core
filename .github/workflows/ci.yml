@@ -74,10 +74,19 @@ jobs:
       - name: Download upx
         if: env.cancel == ''
         run: |
-          upx_version=$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')
+          case "${{ matrix.arch }}" in
+            armv5|mips*)
+              upx_version='3.94'
+            ;;
+            armv7|386)
+              upx_version='3.96'
+            ;;
+            *)
+              upx_version="$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')"
+            ;;
+          esac
           echo "upx_version=${upx_version}" >> $GITHUB_ENV
           gh release download "v${upx_version}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
-          # curl -sSL -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" https://raw.githubusercontent.com/lolion1y/ci4core/upx/upx-3.93-amd64_linux.tar.xz -o - | tar Jx
 
       - name: Download and compress core
         if: env.cancel == ''
@@ -93,13 +102,7 @@ jobs:
           else
             gh release download "${download_tag}" -R "${download_repo}" -p "*-${{ matrix.os }}-${{ matrix.arch }}-${download_version}.gz" -O - | gzip -dc > ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             chmod +x ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
-            if [ "${{ matrix.arch }}" != "armv5" ];then
-              if [ "${{ matrix.arch }}" = "mips*" ];then
-                ./upx-3.93-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
-              else
-                ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
-              fi
-            fi
+            ./upx-${upx_version}-amd64_linux/upx ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }}
             if [ "${{ matrix.rname }}" != '' ];then
               mv ./publish/clash.meta-${{ matrix.os }}-${{ matrix.arch }} ./publish/clash.meta-${{ matrix.os }}-${{ matrix.rname }}
             fi
