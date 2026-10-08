@@ -118,9 +118,19 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          upx_version=$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')
-          echo "upx_version=${upx_version}" >> $GITHUB_ENV
-          gh release download "v${upx_version}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
+          case "${{ matrix.arch }}" in
+            armv5|mips*)
+              UPX_VERSION='3.94'
+            ;;
+            armv7|386)
+              UPX_VERSION='3.96'
+            ;;
+            *)
+              UPX_VERSION="$(gh release view -R upx/upx --json tagName -q '.tagName | ltrimstr("v")')"
+            ;;
+          esac
+          echo "UPX_VERSION=${UPX_VERSION}" >> $GITHUB_ENV
+          gh release download "v${UPX_VERSION}" -R upx/upx -p 'upx-*-amd64_linux.tar.xz' -O - | tar Jx
 
       - name: Compress core
         env:
@@ -129,17 +139,11 @@ jobs:
           mkdir -p publish
           if [ "${{matrix.jobs.goos}}" = "windows" ]; then
             chmod +x mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
-            ./upx-${upx_version}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
+            ./upx-${UPX_VERSION}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
             mv mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe ./publish/clash.meta-${{matrix.jobs.goos}}-${{matrix.jobs.output}}.exe
           else
             chmod +x mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
-            if [ "${{matrix.jobs.output}}" != "armv5" ];then
-              if [ "${{matrix.jobs.output}}" = "mips*" ];then
-                ./upx-3.93-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
-              else
-                ./upx-${upx_version}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
-              fi
-            fi
+            ./upx-${UPX_VERSION}-amd64_linux/upx mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
             mv mihomo-${{matrix.jobs.goos}}-${{matrix.jobs.output}} ./publish/clash.meta-${{matrix.jobs.goos}}-${{matrix.jobs.output}}
           fi
 
